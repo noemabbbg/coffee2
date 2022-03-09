@@ -1,11 +1,15 @@
 import os
 import asyncio
 import logging
+from tkinter import EventType
+from telethon import TelegramClient
+from telethon.tl.types import DocumentAttributeVideo
 from aiogram import Bot
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 
 from db_map import Base, MediaIds
+
 from config import TOKEN, MY_ID, DB_FILENAME
 
 logging.basicConfig(format=u'%(filename)s [ LINE:%(lineno)+3s ]#%(levelname)+8s [%(asctime)s]  %(message)s',
@@ -22,7 +26,13 @@ Session = scoped_session(session_factory)
 bot = Bot(token=TOKEN)
 
 
-BASE_MEDIA_PATH = '/Users/study/Desktop/tt/'
+entity = 'AudioTube_bot' 
+api_id = 11304076
+api_hash = '3b12e5f0c726294395444e1a8c7e3cee'
+phone =  '+79998197749'
+client = TelegramClient(entity, api_id, api_hash)
+client.start(phone=+79998197749)
+BASE_MEDIA_PATH = '/Users/f/Desktop/new'
 
 
 async def uploadMediaFiles(folder, method, file_attr):
@@ -30,14 +40,11 @@ async def uploadMediaFiles(folder, method, file_attr):
     for filename in os.listdir(folder_path):
         if filename.startswith('.'):
             continue
-    
+
         logging.info(f'Started processing {filename}')
         with open(os.path.join(folder_path, filename), 'rb') as file:
-            msg = await method(MY_ID, file, disable_notification=True)
-            if file_attr == 'photo':
-                file_id = msg.photo[-1].file_id
-            else:
-                file_id = getattr(msg, file_attr).file_id
+            msg =await method(133886300, file, disable_notification=True)
+            file_id=getattr(msg, file_attr).file_id
             session = Session()
             newItem = MediaIds(file_id=file_id, filename=filename)
             try:
@@ -48,25 +55,11 @@ async def uploadMediaFiles(folder, method, file_attr):
                 logging.error(
                     'Couldn\'t upload {}. Error is {}'.format(filename, e))
             else:
-                 f.write("'"+ file_id + "', ")
-                    
-                    
+
+                f.write(filename+": '"+ file_id + "', " + "\n")
             finally:
-                f.close()
                 session.close()
 
+
 loop = asyncio.get_event_loop()
-
-tasks = [
-    loop.create_task(uploadMediaFiles('pics', bot.send_photo, 'photo')),
-    loop.create_task(uploadMediaFiles('videos', bot.send_video, 'video')),
-    loop.create_task(uploadMediaFiles('videoNotes', bot.send_video_note, 'video_note')),
-    loop.create_task(uploadMediaFiles('files', bot.send_document, 'document')),
-    loop.create_task(uploadMediaFiles('ogg', bot.send_voice, 'voice')),
-]
-
-wait_tasks = asyncio.wait(tasks)
-
-loop.run_until_complete(wait_tasks)
-loop.close()
-Session.remove()
+loop.run_until_complete(uploadMediaFiles('videos', client.send_file, 'video'))
